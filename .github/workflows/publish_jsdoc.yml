@@ -25,3 +25,4 @@ jobs:
         with:
           deploy_key: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./scripts/jsdoc
+          publish_branch: main
