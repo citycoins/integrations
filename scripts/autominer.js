@@ -27,6 +27,8 @@ import {
   broadcastTransaction,
 } from "@stacks/transactions";
 
+/** @module AutoMiner */
+
 /**
  * @function cancel
  * @param {Object[]} prompt An object that contains the current prompt displayed to the user

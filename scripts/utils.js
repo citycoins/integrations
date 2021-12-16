@@ -6,6 +6,8 @@ export const title = chalk.bold.blue;
 export const warn = chalk.bold.yellow;
 export const err = chalk.bold.red;
 
+/** @module Utilities */
+
 /**
  * @constant
  * @type {integer}
