@@ -18,7 +18,7 @@ jobs:
           source_dir: ./scripts
           output_dir: ./scripts/jsdoc
           template: docdash
-          front_page: README.md
+          front_page: ./scripts/README.md
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
