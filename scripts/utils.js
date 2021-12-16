@@ -6,33 +6,37 @@ export const title = chalk.bold.blue;
 export const warn = chalk.bold.yellow;
 export const err = chalk.bold.red;
 
-/** @constant
-    @type {integer}
-    @default
-*/
+/**
+ * @constant
+ * @type {integer}
+ * @description used to convert uSTX to STX and reverse
+ * @default
+ */
 export const USTX = 1000000;
 
-/** @constant
-    @type {StacksNetwork}
-    @default
-*/
+/**
+ * @constant
+ * @type {StacksNetwork}
+ * @description default Stacks network to connect to
+ * @default
+ */
 export const STACKS_NETWORK = new StacksMainnet();
 STACKS_NETWORK.coreApiUrl = "https://stacks-node-api.mainnet.stacks.co";
 
 /**
  * @async
  * @function timer
- * @param {integer} ms
- * @description Sleeps for a given amount of milliseconds
+ * @param {integer} ms number of milliseconds
+ * @description Sleeps for the given amount of milliseconds
  */
 export const timer = (ms) => new Promise((res) => setTimeout(res, ms));
 
 /**
  * @async
  * @function processTx
- * @param {*} broadcastedResult
- * @param {*} tx
- * @description Monitors a transaction until it succeeeds and returns the block height
+ * @param {TxBroadcastResult} broadcastedResult result from broadcastTransaction() in @stacks/transactions
+ * @param {string} tx the txid of the transaction
+ * @description Monitors a transaction and returns the block height it succeeds at
  * @returns {integer}
  */
 export async function processTx(broadcastedResult, tx) {
@@ -81,8 +85,8 @@ export async function processTx(broadcastedResult, tx) {
 /**
  * @async
  * @function getBlockHeight
- * @returns {integer}
  * @description Returns the current Stacks block height
+ * @returns {integer}
  */
 export async function getBlockHeight() {
   const url = `${STACKS_NETWORK.coreApiUrl}/v2/info`;
@@ -94,7 +98,7 @@ export async function getBlockHeight() {
 /**
  * @async
  * @function getStxBalance
- * @param {string} address
+ * @param {string} address STX address to query
  * @description Returns the current STX balance of a given address
  * @returns {integer}
  */
@@ -108,7 +112,7 @@ export async function getStxBalance(address) {
 /**
  * @async
  * @function getNonce
- * @param {string} address
+ * @param {string} address STX address to query
  * @description Returns the current nonce for the given address
  * @returns {integer}
  */
@@ -135,9 +139,9 @@ export async function getTotalMempoolTx() {
 /**
  * @async
  * @function getAccountTxs
- * @param {string} address
+ * @param {string} address STX address to query
  * @description Returns all account transactions for a given address or contract identifier
- * @returns
+ * @returns {Array[]}
  */
 export async function getAccountTxs(address) {
   let counter = 0;
@@ -189,9 +193,9 @@ export async function getAccountTxs(address) {
 /**
  * @async
  * @function getOptimalFee
- * @param {integer} multiplier
+ * @param {integer} multiplier Mulitiplier for mempool average
  * @description Averages the fees for the first 200 transactions in the mempool and applies a multiplier
- * @returns {integer}
+ * @returns {integer} Optimal fee in uSTX
  */
 export async function getOptimalFee(multiplier) {
   const url = `${STACKS_NETWORK.coreApiUrl}/extended/v1/tx?limit=200&unanchored=true`;
@@ -208,8 +212,9 @@ export async function getOptimalFee(multiplier) {
 /**
  * @async
  * @function getBlockCommit
- * @param {Object[]} miningStrategy
- * @description Returns a target block commit based on provided user config
+ * @param {Object[]} userConfig An object that contains the user configuration
+ * @param {Object[]} miningStrategy An object that contains properties for automatically calculating a commit
+ * @description Returns a target block commit based on provided user config and mining strategy
  * @returns {integer}
  */
 export async function getBlockCommit(userConfig, miningStrategy) {
@@ -244,7 +249,7 @@ export async function getBlockCommit(userConfig, miningStrategy) {
 /**
  * @async
  * @function getBlockAvg
- * @param {Object[]} userConfig
+ * @param {Object[]} userConfig An object that contains the user configuration
  * @description Returns the average block commit for strategyDistance blocks in the past/future
  * @returns {integer}
  */
@@ -280,9 +285,9 @@ async function getBlockAvg(
 /**
  * @async
  * @function getMiningStatsAtBlock
- * @param {string} contractAddress
- * @param {string} contractName
- * @param {integer} blockHeight
+ * @param {string} contractAddress STX address of the contract deployer
+ * @param {string} contractName Name of the contract
+ * @param {integer} blockHeight Block height to query
  * @description Returns the total amount of STX sent for a given block height in the specified contracts
  * @returns {integer}
  */
@@ -334,7 +339,7 @@ export function exitWithError(message) {
 /**
  * @async
  * @function waitUntilBlock
- * @param {Object[]} userConfig
+ * @param {Object[]} userConfig An object that contains the user configuration
  * @returns {boolean}
  */
 export async function waitUntilBlock(userConfig) {

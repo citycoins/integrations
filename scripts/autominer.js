@@ -29,7 +29,7 @@ import {
 
 /**
  * @function cancel
- * @param {string} prompt
+ * @param {Object[]} prompt An object that contains the current prompt displayed to the user
  * @description Catches a cancel event in prompts, sets the message, and exits the AutoMiner
  */
 const cancel = (prompt) => {
@@ -40,7 +40,7 @@ const cancel = (prompt) => {
  * @async
  * @function promptUserConfig
  * @description Prompts the user for configuration options at the start of the script
- * @returns {Object[]}
+ * @returns {Object[]} An object that contains properties for each question name and related answers as a values
  */
 async function promptUserConfig() {
   const currentBlockHeight = await getBlockHeight().catch((err) =>
@@ -157,8 +157,9 @@ async function promptUserConfig() {
 /**
  * @async
  * @function autoMine
- * @param {Object[]} userConfig
- * @description Builds and submits a mining transaction
+ * @param {Object[]} userConfig An object that contains properties for each question name and related answers as a values
+ * @param {Object[]} [miningStrategy={}] An object that contains properties for automatically calculating a commit
+ * @description Builds and submits a mining transaction based on the provided user configuration and mining strategy
  */
 async function autoMine(userConfig, miningStrategy = {}) {
   // set initial variables
