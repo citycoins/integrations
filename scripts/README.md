@@ -1,12 +1,14 @@
-# CityCoins AutoMiner
+# CityCoins Scripts
 
 > THIS IS ALPHA SOFTWARE THAT REQUIRES A STACKS PRIVATE KEY TO SEND A TRANSACTION.
 >
 > THE CODE IS FOR EDUCATIONAL AND DEMONSTRATION PURPOSES ONLY.
-
+>
 > USE AT YOUR OWN RISK. PLEASE REPORT ANY [ISSUES ON GITHUB](https://github.com/citycoins/integrations/issues).
 
-This utility provides a simple, easy-to-use, prompt-driven interface for mining CityCoins.
+This directory provides a set of Node.js scripts to interact with the CityCoins protocol, starting with the AutoMiner utility.
+
+This utility provides a simple, easy-to-use, prompt-driven interface for mining CityCoins, with options to set strategies, custom values, and continuously run.
 
 ## Requirements
 
@@ -59,13 +61,13 @@ git clone https://github.com/citycoins/integrations.git
 Enter the directory for the AutoMiner and install the prequisites:
 
 ```bash
-cd integrations/scripts/autominer
+cd integrations/scripts
 npm install
 ```
 
 ## Running the AutoMiner
 
-The miner will prompt for information on each run.
+The miner will prompt for information on the first transaction, and use the same information for subsequent transactions if submitting more than one is selected.
 
 ```bash
 node autominer.js
