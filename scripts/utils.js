@@ -134,6 +134,60 @@ export async function getTotalMempoolTx() {
 
 /**
  * @async
+ * @function getAccountTxs
+ * @param {string} address
+ * @description Returns all account transactions for a given address or contract identifier
+ * @returns
+ */
+export async function getAccountTxs(address) {
+  let counter = 0;
+  let total = 0;
+  let limit = 50;
+  let url = "";
+  let txResults = [];
+
+  // bonus points if you use your own node
+  let stxApi = "https://stacks-node-api.mainnet.stacks.co";
+
+  console.log(`getting txs for: ${address}`);
+
+  // obtain all account transactions 50 at a time
+  do {
+    url = `${stxApi}/extended/v1/address/${address}/transactions?limit=${limit}&offset=${counter}`;
+    const response = await fetch(url);
+    if (response.status === 200) {
+      // success
+      const responseJson = await response.json();
+      // get total number of tx
+      if (total === 0) {
+        total = responseJson.total;
+        console.log(`Total Txs: ${total}`);
+      }
+      // add all transactions to main array
+      responseJson.results.map((tx) => {
+        txResults.push(tx);
+        counter++;
+      });
+      // output counter
+      console.log(`Processed ${counter} of ${total}`);
+    } else {
+      // error
+      exitWithError(
+        `getAccountTxs err: ${response.status} ${response.statusText}`
+      );
+    }
+    // pause for 1sec, avoid rate limiting
+    await timer(1000);
+  } while (counter < total);
+
+  // view the output
+  //console.log(JSON.stringify(txResults));
+
+  return txResults;
+}
+
+/**
+ * @async
  * @function getOptimalFee
  * @param {integer} multiplier
  * @description Averages the fees for the first 200 transactions in the mempool and applies a multiplier
