@@ -281,7 +281,7 @@ export function exitWithError(message) {
  * @async
  * @function waitUntilBlock
  * @param {Object[]} userConfig
- * @returns
+ * @returns {boolean}
  */
 export async function waitUntilBlock(userConfig) {
   // config
