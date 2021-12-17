@@ -254,35 +254,37 @@ async function autoMine(userConfig, miningStrategy = {}, firstRun = true) {
       ? 0
       : userConfig.numberOfRuns;
 
-  // set block height to start tx
   if (userConfig.startNow && firstRun === true) {
+    // set block height to start tx on first run
     userConfig.targetBlockHeight = await getBlockHeight().catch((err) =>
       exitWithError(`getBlockHeight err: ${err}`)
     );
   }
 
-  // set commit if custom commit used
   if (userConfig.customCommit) {
-    // verify custom commit set by user or exit
-    const confirmCommit = await prompts(
-      {
-        type: "confirm",
-        name: "confirmCommit",
-        message: `Confirm custom commit: ${(
-          userConfig.customCommitValue / USTX
-        ).toFixed(6)} STX`,
-      },
-      {
-        onCancel: cancel,
+    if (firstRun) {
+      // prompt user to confirm custom commit
+      const confirmCommit = await prompts(
+        {
+          type: "confirm",
+          name: "confirmCommit",
+          message: `Confirm custom commit: ${(
+            userConfig.customCommitValue / USTX
+          ).toFixed(6)} STX`,
+        },
+        {
+          onCancel: cancel,
+        }
+      );
+      // exit if not confirmed
+      if (!confirmCommit) {
+        exitWithError("ERROR: custom commit not confirmed, exiting...");
       }
-    );
-    if (!confirmCommit) {
-      exitWithError("ERROR: custom commit not confirmed, exiting...");
-    } else {
-      commit = userConfig.customCommitValue;
     }
+    // set custom commit value
+    commit = userConfig.customCommitValue;
   } else {
-    // check if strategy already exists for subsequent runs
+    // check if strategy already exists and if not set it
     if (
       !miningStrategy.hasOwnProperty("strategyDistance") &&
       !miningStrategy.hasOwnProperty("targetPercentage") &&
@@ -291,33 +293,35 @@ async function autoMine(userConfig, miningStrategy = {}, firstRun = true) {
       printDivider();
       console.log(title("STATUS: SETTING MINING STRATEGY"));
       printDivider();
-
       miningStrategy = await promptMiningStrategy();
     }
   }
 
   if (userConfig.customFee) {
-    // verify custom fee set by user or exit
-    const confirmFee = await prompts(
-      {
-        type: "confirm",
-        name: "confirmFee",
-        message: `Confirm custom fee: ${(
-          userConfig.customFeeValue / USTX
-        ).toFixed(6)} STX`,
-      },
-      {
-        onCancel: cancel,
+    if (firstRun) {
+      // verify custom fee set by user or exit
+      const confirmFee = await prompts(
+        {
+          type: "confirm",
+          name: "confirmFee",
+          message: `Confirm custom fee: ${(
+            userConfig.customFeeValue / USTX
+          ).toFixed(6)} STX`,
+        },
+        {
+          onCancel: cancel,
+        }
+      );
+      if (!confirmFee) {
+        exitWithError("ERROR: custom fee not confirmed, exiting...");
       }
-    );
-    if (confirmFee) {
-      targetFee = userConfig.customFeeValue;
-    } else {
-      exitWithError("ERROR: custom fee not confirmed, exiting...");
     }
+    targetFee = userConfig.customFeeValue;
   } else {
-    // set fee multiplier
-    feeMultiplier = await promptFeeStrategy();
+    // check if fee multiplier exists and if not set it
+    if (!feeMultiplier.hasOwnProperty("value")) {
+      feeMultiplier = await promptFeeStrategy();
+    }
   }
 
   // loop until target block is reached
