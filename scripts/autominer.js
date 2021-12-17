@@ -523,6 +523,7 @@ async function autoMine(userConfig, miningStrategy = {}, firstRun = true) {
   }
 }
 
+// show title and disclaimer on first run
 printDivider();
 console.log(title("CITYCOINS AUTOMINER"));
 printDivider();
@@ -534,6 +535,8 @@ console.log(
 );
 console.log("THE CODE IS FOR EDUCATIONAL AND DEMONSTRATION PURPOSES ONLY.\n");
 console.log(warn("USE AT YOUR OWN RISK. PLEASE REPORT ANY ISSUES ON GITHUB."));
+
+// get the user config and start the AutoMiner
 printDivider();
 console.log(title("STATUS: SETTING USER CONFIG"));
 printDivider();
