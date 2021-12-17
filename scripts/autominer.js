@@ -239,6 +239,7 @@ async function promptFeeStrategy() {
  * @function autoMine
  * @param {Object[]} userConfig An object that contains properties for each question name and related answers as a values
  * @param {Object[]} [miningStrategy={}] An object that contains properties for automatically calculating a commit
+ * @param {boolean} [firstRun=true] A boolean that indicates if this is the first run of the script
  * @description Builds and submits a mining transaction based on the provided user configuration and mining strategy
  */
 async function autoMine(userConfig, miningStrategy = {}, firstRun = true) {
@@ -446,15 +447,16 @@ async function autoMine(userConfig, miningStrategy = {}, firstRun = true) {
     console.log(title("STATUS: SUBMITTING MINING TX"));
     printDivider();
 
+    // get the current nonce
     const nonce = await getNonce(userConfig.stxAddress).catch((err) =>
       exitWithError(`getNonce err: ${err}`)
     );
     let mineManyArray = [];
 
+    // create the clarity values for the mining tx
     for (let i = 0; i < userConfig.numberOfBlocks; i++) {
       mineManyArray.push(uintCV(commit));
     }
-
     const sumCV = uintCV(commit * userConfig.numberOfBlocks);
     mineManyArray = listCV(mineManyArray);
 
@@ -466,6 +468,7 @@ async function autoMine(userConfig, miningStrategy = {}, firstRun = true) {
     );
     console.log(`nonce: ${nonce}`);
 
+    // create the mining tx
     const txOptions = {
       contractAddress: userConfig.contractAddress,
       contractName: userConfig.contractName,
@@ -485,9 +488,11 @@ async function autoMine(userConfig, miningStrategy = {}, firstRun = true) {
       STACKS_NETWORK,
     };
 
+    // pause 10sec
     console.log(`pausing 10sec before submitting tx`);
     await timer(10000);
 
+    // submit the tx
     const transaction = await makeContractCall(txOptions).catch((err) =>
       exitWithError(`makeContractCall err: ${err}`)
     );
@@ -495,12 +500,16 @@ async function autoMine(userConfig, miningStrategy = {}, firstRun = true) {
       transaction,
       STACKS_NETWORK
     ).catch((err) => exitWithError(`broadcastTransaction err: ${err}`));
-    const nextTargetBlock = await processTx(result, transaction.txid()).catch(
+
+    // monitor the tx status
+    const processTxBlock = await processTx(result, transaction.txid()).catch(
       (err) => exitWithError(`processTx err: ${err}`)
     );
+
+    // check if AutoMiner should restart with new value
     if (userConfig.autoMineConfirm === true || userConfig.numberOfRuns > 0) {
       userConfig.numberOfRuns -= 1;
-      userConfig.targetBlock = nextTargetBlock + userConfig.numberOfBlocks;
+      userConfig.targetBlock = processTxBlock + userConfig.numberOfBlocks;
       printDivider();
       console.log(title("STATUS: RESTARTING WITH NEW TARGET"));
       printDivider();
