@@ -186,7 +186,7 @@ async function promptMiningStrategy() {
     },
     {
       type: "number",
-      name: "maxCommitPerBlock",
+      name: "maxCommitBlock",
       message: "Max commit per block in uSTX? (1,000,000 uSTX = 1 STX)",
     },
   ];
@@ -199,7 +199,7 @@ async function promptMiningStrategy() {
       type: "confirm",
       name: "confirmMax",
       message: `Confirm max commit: ${(
-        miningStrategy.maxCommitPerBlock / USTX
+        miningStrategy.maxCommitBlock / USTX
       ).toFixed(6)} STX?`,
     },
     {
@@ -217,7 +217,7 @@ async function promptMiningStrategy() {
  * @async
  * @function promptFeeStrategy
  * @description Prompts the user for a custom fee multiplier
- * @returns {integer} The multiplier for the average fee in the mempool
+ * @returns {Object[]} An object that contains the value for the fee multiplier
  */
 async function promptFeeStrategy() {
   feeMultiplier = await prompts(
@@ -241,14 +241,12 @@ async function promptFeeStrategy() {
  * @param {Object[]} [miningStrategy={}] An object that contains properties for automatically calculating a commit
  * @description Builds and submits a mining transaction based on the provided user configuration and mining strategy
  */
-async function autoMine(userConfig, miningStrategy = {}) {
+async function autoMine(userConfig, miningStrategy = {}, firstRun = true) {
   // set initial variables
   let commit = 0;
-  let maxCommit = 0;
-  let maxCommitPerBlock = 0;
+  let maxCommitBalance = 0;
   let targetFee = 0;
-  let feeMultiplier = 0;
-  let targetPercentage = 0;
+  let feeMultiplier = [];
 
   // set number of runs, 0 if continuous
   const numberOfRuns =
@@ -257,12 +255,13 @@ async function autoMine(userConfig, miningStrategy = {}) {
       : userConfig.numberOfRuns;
 
   // set block height to start tx
-  if (userConfig.startNow) {
+  if (userConfig.startNow && firstRun === true) {
     userConfig.targetBlockHeight = await getBlockHeight().catch((err) =>
       exitWithError(`getBlockHeight err: ${err}`)
     );
   }
 
+  // set commit if custom commit used
   if (userConfig.customCommit) {
     // verify custom commit set by user or exit
     const confirmCommit = await prompts(
@@ -287,7 +286,7 @@ async function autoMine(userConfig, miningStrategy = {}) {
     if (
       !miningStrategy.hasOwnProperty("strategyDistance") &&
       !miningStrategy.hasOwnProperty("targetPercentage") &&
-      !miningStrategy.hasOwnProperty("maxCommitPerBlock")
+      !miningStrategy.hasOwnProperty("maxCommitBlock")
     ) {
       printDivider();
       console.log(title("STATUS: SETTING MINING STRATEGY"));
@@ -357,26 +356,28 @@ async function autoMine(userConfig, miningStrategy = {}) {
       commit = await getBlockCommit(userConfig, miningStrategy).catch((err) =>
         exitWithError(`getBlockCommit err: ${err}`)
       );
-      if (commit > maxCommitPerBlock) {
+      if (commit > miningStrategy.maxCommitBlock) {
         console.log(
           warn(
             `WARNING: commit of ${(commit / USTX).toFixed(
               6
             )} STX is greater than max threshold of ${(
-              maxCommitPerBlock / USTX
+              miningStrategy.maxCommitBlock / USTX
             ).toFixed(6)}`
           )
         );
         console.log(
-          `setting commit to ${(maxCommitPerBlock / USTX).toFixed(6)} STX`
+          `setting commit to ${(miningStrategy.maxCommitBlock / USTX).toFixed(
+            6
+          )} STX`
         );
-        commit = maxCommitPerBlock;
+        commit = miningStrategy.maxCommitBlock;
       }
     }
 
     // compare commit value to balance
-    maxCommit = parseInt(stxBalance / userConfig.numberOfBlocks);
-    if (commit > maxCommit) {
+    maxCommitBalance = parseInt(stxBalance / userConfig.numberOfBlocks);
+    if (commit > maxCommitBalance) {
       console.log(
         warn(
           `WARNING: commit of ${(commit / USTX).toFixed(
@@ -384,17 +385,23 @@ async function autoMine(userConfig, miningStrategy = {}) {
           )} STX is greater than balance`
         )
       );
-      console.log(`setting commit to ${(maxCommit / USTX).toFixed(6)} STX`);
-      commit = maxCommit;
+      console.log(
+        `setting commit to ${(maxCommitBalance / USTX).toFixed(6)} STX`
+      );
+      commit = maxCommitBalance;
     }
 
     // output commit calculations
     if (!userConfig.customCommit) {
-      console.log(`target: ${targetPercentage}%`);
-      console.log(`maxThreshold: ${(maxCommitPerBlock / USTX).toFixed(6)} STX`);
+      console.log(`target: ${miningStrategy.targetPercentage}%`);
+      console.log(
+        `maxThreshold: ${(miningStrategy.maxCommitBlock / USTX).toFixed(6)} STX`
+      );
     }
     printDivider();
-    console.log(`maxCommit: ${(maxCommit / USTX).toFixed(6)} STX`);
+    console.log(
+      `maxCommitBalance: ${(maxCommitBalance / USTX).toFixed(6)} STX`
+    );
     console.log(`commit: ${(commit / USTX).toFixed(6)} STX`);
 
     // output fee info and calculate if needed
@@ -489,13 +496,12 @@ async function autoMine(userConfig, miningStrategy = {}) {
     );
     if (userConfig.autoMineConfirm === true || userConfig.numberOfRuns > 0) {
       userConfig.numberOfRuns -= 1;
-      userConfig.startNow = false;
       userConfig.targetBlock = nextTargetBlock + userConfig.numberOfBlocks;
       printDivider();
       console.log(title("STATUS: RESTARTING WITH NEW TARGET"));
       printDivider();
       console.log(`newTarget: ${userConfig.targetBlock}`);
-      autoMine(userConfig, miningStrategy);
+      autoMine(userConfig, miningStrategy, false);
     } else {
       exitWithError("Selected number of runs complete, exiting...");
     }
