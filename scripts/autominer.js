@@ -158,6 +158,84 @@ async function promptUserConfig() {
 
 /**
  * @async
+ * @function promptMiningStrategy
+ * @description Prompts the user for a custom mining strategy
+ * @returns {Object[]} An object that contains properties for each question name and related answers as a values
+ */
+async function promptMiningStrategy() {
+  // configure mining strategy
+  const miningStrategyQuestions = [
+    {
+      type: "number",
+      name: "strategyDistance",
+      message: "Number of blocks to search for strategy?",
+      validate: (value) => {
+        if (value < 1 || value > 100) return "Value must be between 1 and 100";
+        return true;
+      },
+    },
+    {
+      type: "number",
+      name: "targetPercentage",
+      message: "Target percentage of total block commit?",
+      validate: (value) => {
+        if (value === "") return "Target percentage is required";
+        if (value < 1 || value > 100) return "Value must be between 1 and 100";
+        return true;
+      },
+    },
+    {
+      type: "number",
+      name: "maxCommitPerBlock",
+      message: "Max commit per block in uSTX? (1,000,000 uSTX = 1 STX)",
+    },
+  ];
+  const miningStrategy = await prompts(miningStrategyQuestions, {
+    onCancel: cancel,
+  });
+  // verify max commit set by user or exit
+  const confirmMax = await prompts(
+    {
+      type: "confirm",
+      name: "confirmMax",
+      message: `Confirm max commit: ${(
+        miningStrategy.maxCommitPerBlock / USTX
+      ).toFixed(6)} STX?`,
+    },
+    {
+      onCancel: cancel,
+    }
+  );
+  if (!confirmMax) {
+    exitWithError("ERROR: max commit not confirmed, exiting...");
+  }
+  // return miningStrategy object
+  return miningStrategy;
+}
+
+/**
+ * @async
+ * @function promptFeeStrategy
+ * @description Prompts the user for a custom fee multiplier
+ * @returns {integer} The multiplier for the average fee in the mempool
+ */
+async function promptFeeStrategy() {
+  feeMultiplier = await prompts(
+    {
+      type: "number",
+      name: "value",
+      message: "Fee multiplier for tx in mempool? (default: 1)",
+      validate: (value) => (value > 0 ? true : "Value must be greater than 0"),
+    },
+    {
+      onCancel: cancel,
+    }
+  );
+  return feeMultiplier;
+}
+
+/**
+ * @async
  * @function autoMine
  * @param {Object[]} userConfig An object that contains properties for each question name and related answers as a values
  * @param {Object[]} [miningStrategy={}] An object that contains properties for automatically calculating a commit
@@ -172,17 +250,19 @@ async function autoMine(userConfig, miningStrategy = {}) {
   let feeMultiplier = 0;
   let targetPercentage = 0;
 
-  // set number of runs, 0 for infinite
+  // set number of runs, 0 if continuous
   const numberOfRuns =
     userConfig.autoMine && userConfig.autoMineConfirm
       ? 0
       : userConfig.numberOfRuns;
+
   // set block height to start tx
   if (userConfig.startNow) {
     userConfig.targetBlockHeight = await getBlockHeight().catch((err) =>
       exitWithError(`getBlockHeight err: ${err}`)
     );
   }
+
   if (userConfig.customCommit) {
     // verify custom commit set by user or exit
     const confirmCommit = await prompts(
@@ -203,35 +283,6 @@ async function autoMine(userConfig, miningStrategy = {}) {
       commit = userConfig.customCommitValue;
     }
   } else {
-    // configure mining strategy
-    const miningStrategyQuestions = [
-      {
-        type: "number",
-        name: "strategyDistance",
-        message: "Number of blocks to search for strategy?",
-        validate: (value) => {
-          if (value < 1 || value > 100)
-            return "Value must be between 1 and 100";
-          return true;
-        },
-      },
-      {
-        type: "number",
-        name: "targetPercentage",
-        message: "Target percentage of total block commit?",
-        validate: (value) => {
-          if (value === "") return "Target percentage is required";
-          if (value < 1 || value > 100)
-            return "Value must be between 1 and 100";
-          return true;
-        },
-      },
-      {
-        type: "number",
-        name: "maxCommitPerBlock",
-        message: "Max commit per block in uSTX? (1,000,000 uSTX = 1 STX)",
-      },
-    ];
     // check if strategy already exists for subsequent runs
     if (
       !miningStrategy.hasOwnProperty("strategyDistance") &&
@@ -241,28 +292,8 @@ async function autoMine(userConfig, miningStrategy = {}) {
       printDivider();
       console.log(title("STATUS: SETTING MINING STRATEGY"));
       printDivider();
-      miningStrategy = await prompts(miningStrategyQuestions, {
-        onCancel: cancel,
-      });
-      // verify max commit set by user or exit
-      const confirmMax = await prompts(
-        {
-          type: "confirm",
-          name: "confirmMax",
-          message: `Confirm max commit: ${(
-            miningStrategy.maxCommitPerBlock / USTX
-          ).toFixed(6)} STX?`,
-        },
-        {
-          onCancel: cancel,
-        }
-      );
-      if (confirmMax) {
-        maxCommitPerBlock = miningStrategy.maxCommitPerBlock;
-        targetPercentage = miningStrategy.targetPercentage;
-      } else {
-        exitWithError("ERROR: max commit not confirmed, exiting...");
-      }
+
+      miningStrategy = await promptMiningStrategy();
     }
   }
 
@@ -287,18 +318,7 @@ async function autoMine(userConfig, miningStrategy = {}) {
     }
   } else {
     // set fee multiplier
-    feeMultiplier = await prompts(
-      {
-        type: "number",
-        name: "value",
-        message: "Fee multiplier for tx in mempool? (default: 1)",
-        validate: (value) =>
-          value > 0 ? true : "Value must be greater than 0",
-      },
-      {
-        onCancel: cancel,
-      }
-    );
+    feeMultiplier = await promptFeeStrategy();
   }
 
   // loop until target block is reached
