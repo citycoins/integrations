@@ -54,6 +54,7 @@ export async function processTx(broadcastedResult, tx) {
     console.log(title(`TX STATUS: ${txResult.tx_status.toUpperCase()}`));
     printDivider();
     printTimeStamp();
+    console.log(`https://explorer.stacks.co/txid/${txResult.tx_id}`);
     console.log(`attempt ${count + 1} of ${countLimit}`);
 
     if (broadcastedResult.error) {
@@ -233,7 +234,9 @@ export async function getBlockCommit(userConfig, miningStrategy) {
     userConfig
   ).catch((err) => exitWithError(`getBlockAvg err: ${err}`));
   console.log(`avgPast: ${(avgPast / USTX).toFixed(6)} STX`);
-  const commitPast = avgPast * (miningStrategy.targetPercentage / 100);
+  const commitPast = parseInt(
+    avgPast * (miningStrategy.targetPercentage / 100)
+  );
   // get average block commit for future blocks based on strategy distance
   const avgFuture = await getBlockAvg(
     1,
@@ -242,7 +245,9 @@ export async function getBlockCommit(userConfig, miningStrategy) {
     userConfig
   ).catch((err) => exitWithError(`getBlockAvg err: ${err}`));
   console.log(`avgFuture: ${(avgFuture / USTX).toFixed(6)} STX`);
-  const commitFuture = avgFuture * (miningStrategy.targetPercentage / 100);
+  const commitFuture = parseInt(
+    avgFuture * (miningStrategy.targetPercentage / 100)
+  );
   // set commit amount by averaging past and future values
   const commitAmount = (commitPast + commitFuture) / 2;
   return commitAmount.toFixed();
@@ -278,7 +283,7 @@ async function getBlockAvg(
     blockStats.push(result);
   }
 
-  const sum = blockStats.reduce((a, b) => a + b, 0);
+  const sum = blockStats.reduce((a, b) => parseInt(a) + parseInt(b), 0);
   const avg = sum / miningStrategy.strategyDistance;
 
   return avg;

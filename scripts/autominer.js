@@ -220,7 +220,7 @@ async function promptMiningStrategy() {
  * @returns {Object[]} An object that contains the value for the fee multiplier
  */
 async function promptFeeStrategy() {
-  feeMultiplier = await prompts(
+  const feeMultiplier = await prompts(
     {
       type: "number",
       name: "value",
@@ -320,8 +320,9 @@ async function autoMine(userConfig, miningStrategy = {}, firstRun = true) {
     targetFee = userConfig.customFeeValue;
   } else {
     // check if fee multiplier exists and if not set it
-    if (!feeMultiplier.hasOwnProperty("value")) {
+    if (!miningStrategy.hasOwnProperty("feeMultiplier")) {
       feeMultiplier = await promptFeeStrategy();
+      miningStrategy.feeMultiplier = feeMultiplier.value;
     }
   }
 
@@ -397,16 +398,14 @@ async function autoMine(userConfig, miningStrategy = {}, firstRun = true) {
     }
 
     // output commit calculations
+    printDivider();
     if (!userConfig.customCommit) {
       console.log(`target: ${miningStrategy.targetPercentage}%`);
       console.log(
-        `maxThreshold: ${(miningStrategy.maxCommitBlock / USTX).toFixed(6)} STX`
+        `maxPerBlock: ${(miningStrategy.maxCommitBlock / USTX).toFixed(6)} STX`
       );
     }
-    printDivider();
-    console.log(
-      `maxCommitBalance: ${(maxCommitBalance / USTX).toFixed(6)} STX`
-    );
+    console.log(`maxPerBalance: ${(maxCommitBalance / USTX).toFixed(6)} STX`);
     console.log(`commit: ${(commit / USTX).toFixed(6)} STX`);
 
     // output fee info and calculate if needed
@@ -418,8 +417,8 @@ async function autoMine(userConfig, miningStrategy = {}, firstRun = true) {
     } else {
       console.log(title("STATUS: CALCULATING FEES"));
       printDivider();
-      targetFee = await getOptimalFee(feeMultiplier.value).catch((err) =>
-        exitWithError(`getOptimalFee err: ${err}`)
+      targetFee = await getOptimalFee(miningStrategy.feeMultiplier).catch(
+        (err) => exitWithError(`getOptimalFee err: ${err}`)
       );
       console.log(`targetFee: ${(targetFee / USTX).toFixed(6)} STX`);
     }
@@ -437,11 +436,6 @@ async function autoMine(userConfig, miningStrategy = {}, firstRun = true) {
       commit -= parseInt(targetFee / userConfig.numberOfBlocks);
       console.log(`newCommit: ${(commit / USTX).toFixed(6)} STX`);
     }
-    console.log(
-      `totalCommit: ${((commit * userConfig.numberOfBlocks) / USTX).toFixed(
-        6
-      )} STX`
-    );
 
     printDivider();
     console.log(title("STATUS: SUBMITTING MINING TX"));
@@ -467,6 +461,11 @@ async function autoMine(userConfig, miningStrategy = {}, firstRun = true) {
       )}...${userConfig.stxAddress.slice(userConfig.stxAddress.length - 5)}`
     );
     console.log(`nonce: ${nonce}`);
+    console.log(
+      `totalCommit: ${((commit * userConfig.numberOfBlocks) / USTX).toFixed(
+        6
+      )} STX`
+    );
 
     // create the mining tx
     const txOptions = {
@@ -489,7 +488,7 @@ async function autoMine(userConfig, miningStrategy = {}, firstRun = true) {
     };
 
     // pause 10sec
-    console.log(`pausing 10sec before submitting tx`);
+    console.log(`pausing 10sec before submit`);
     await timer(10000);
 
     // submit the tx
